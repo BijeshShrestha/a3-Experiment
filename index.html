@@ -1,9 +1,152 @@
 <!DOCTYPE html>
-<div id="container"></div>
-<script type="module">
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Bubble Chart</title>
+        <script src="https://d3js.org/d3.v6.min.js"></script>
+        <style>
+            svg {
+                border: 1px solid #ccc;
+            }
+        </style>
+    </head>
 
-import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm";
+    <body>
+        <div id="container"></div>
+        <script>
 
-console.log(d3);
+            const NUM_EXAMPLES = 20
+            const CIRCLES_PER_EXAMPLE = 5
+            const MIN_R = 10
+            const MAX_R = 25
 
-</script>
+            const MAX_X = 100
+            const MAX_Y = 100
+
+            const generateRandomCircles = () => {
+                let json_output = []
+                for (let ex = 0; ex < NUM_EXAMPLES; ex++) {
+                    let first_r = -1
+                    let diff = -1
+                    
+                    let example_dictionary = []
+                    for (let cir = 0; cir < CIRCLES_PER_EXAMPLE; cir++) {
+                        let circle_dictionary = []
+
+                        let x = (Math.floor(Math.random() * ((MAX_X - MAX_R) - (MAX_R) + 1) + MAX_R) / CIRCLES_PER_EXAMPLE) + (cir * MAX_X / CIRCLES_PER_EXAMPLE) 
+                        let y = Math.floor(Math.random() * ((MAX_Y - MAX_R) - (MAX_R) + 1) + MAX_R)
+                        let r = Math.floor(Math.random() * (MAX_R - MIN_R + 1) + MIN_R)
+                        
+                        circle_dictionary.push({
+                            key: "cx",
+                            value: x
+                        })
+
+                        circle_dictionary.push({
+                            key: "cy",
+                            value: y
+                        })
+
+                        circle_dictionary.push({
+                            key: "r",
+                            value: r
+                        })
+
+
+                        if (cir == 2) {
+                            first_r = r
+                        } else if (cir == 4) {
+                            if (r > first_r) {
+                                diff = (first_r / r)
+                            } else {
+                                diff = (r / first_r)
+                            }
+                        }
+                        
+                        example_dictionary.push({
+                            key: cir,
+                            value: JSON.stringify(circle_dictionary)
+                        })
+                    }
+                    example_dictionary.push({
+                        key: "diff",
+                        value: diff
+                    })
+                    json_output.push({
+                        key: ex,
+                        value: JSON.stringify(example_dictionary)
+                    })
+                }
+                //console.log(json_output)
+            }
+
+            //generateRandomCircles()
+
+            const margin = {top: 10, right: 20, bottom: 30, left: 50},
+                width = 500 - margin.left - margin.right,
+                height = 420 - margin.top - margin.bottom;
+
+            const svg = d3.select("#container")
+            .append("svg")
+                .attr("width", width + margin.left + margin.right)
+                .attr("height", height + margin.top + margin.bottom)
+            .append("g")
+                .attr("transform", `translate(${margin.left},${margin.top})`);
+
+            d3.json("output_circles.json").then((data) => {
+
+                let chosen_example = Math.floor(Math.random() * NUM_EXAMPLES)
+                let circle_data = JSON.parse(data[chosen_example].value)
+                let diff = circle_data[5].value
+
+                const x = d3.scaleLinear()
+                    .domain([0, MAX_X])
+                    .range([ 0, width ]);
+                svg.append("g")
+                    .attr("transform", `translate(0, ${height})`)
+                    .call(d3.axisBottom(x));
+
+                const y = d3.scaleLinear()
+                    .domain([0, MAX_Y])
+                    .range([ height, 0]);
+                svg.append("g")
+                    .call(d3.axisLeft(y));
+
+                const z = d3.scaleLinear()
+                    .domain([0, MAX_R])
+                    .range([ 0, MAX_R]);
+                
+
+                for (let cir = 0; cir < CIRCLES_PER_EXAMPLE; cir++) {
+                    let point_data = JSON.parse(circle_data[cir].value)
+                    let cx = point_data[0].value
+                    let cy = point_data[1].value
+                    let r = point_data[2].value
+
+                    console.log("x:" + cx + " y:" + cy + " r:" + r)
+
+                    svg.append('g')
+                        .selectAll("dot")
+                        .data(data)
+                        .join("circle")
+                        .attr("cx", d => x(cx))
+                        .attr("cy", d => y(cy))
+                        .attr("r", d => r)
+                        .style("fill", "#69b3a2")
+                        .style("opacity", "0.7")
+                        .attr("stroke", "black")
+
+                    if (cir == 2 || cir == 4) {
+                        svg.append('circle')
+                            .attr('cx', x(cx))
+                            .attr('cy', y(cy))
+                            .attr('r', (MIN_R / 2))
+                            .attr('stroke', 'black')
+                            .attr('fill', 'black');
+                    }
+                }
+                console.log("Actual difference is " + diff)
+            })
+        </script>
+    </body>
+</html>
